@@ -11,8 +11,13 @@ var options = {
 
 	initPos : [
 		[ 3 ,3 ],
-		[ 4, 4 ],
-		[ 4, 14 ],
+		[ 4, 4 ]
+	],
+
+	path : [
+
+		['UP','LEFT','UP'],
+	
 	],
 
 	whoStart : 0,
@@ -54,7 +59,10 @@ window.onload= function(){
 		ctx.lineCap = "round"
 		ctx.beginPath()
 		ctx.moveTo( (oldPos[0]+0.5)*grid , (oldPos[1]+0.5)*grid )
-		ctx.lineTo( (newPos[0]+0.5)*grid+0.5 , (newPos[1]+0.5)*grid )
+		if( oldPos[0] == newPos[0] && oldPos[1] == newPos[1 ])
+			ctx.lineTo( (newPos[0]+0.5)*grid+0.5 , (newPos[1]+0.5)*grid )
+		else
+			ctx.lineTo( (newPos[0]+0.5)*grid , (newPos[1]+0.5)*grid )
 		ctx.stroke()
 	}
 	drawGrid();
@@ -138,6 +146,7 @@ window.onload= function(){
 		this.setSource=function( l ){
 			keyboard=false;
 			ana=false;
+			choice=null;
 			switch( l ){
 				case 'keyboard' : 
 					keyboard = true 
@@ -145,18 +154,18 @@ window.onload= function(){
 				case 'ana' : 
 					ana = true 
 				break
+				default:
+					choice=l
 			}
-			choice=null;
 		},
 		this.choice=function(){
 			return choice;
 		}
-
 	})( worker )
 
 
 	var turn = function(){
-		valide.setSource( next ? 'keyboard' : 'ana' )
+		valide.setSource( next ? ( options.path && options.path[next-1].length ? options.path[next-1].shift() : 'keyboard' ) : 'ana' )
 
 		selectPlayer( next )
 

@@ -3,6 +3,8 @@
 	var buffer = [];
 
 	this.addEventListener('message', function(e) {
+	  	if( !e.data )
+	  		return
 	  	buffer=buffer.concat( e.data.split(':') )
 	}, false);
 
@@ -71,6 +73,6 @@ var loopfn=function(){
 	var s
 	if( (s=readline()) )
 		iteration( s )
-	setTimeout( loopfn , 100 )
+	setTimeout( loopfn , 10 )
 }
 loopfn()
