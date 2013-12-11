@@ -1,0 +1,227 @@
+<html>
+
+<script>
+
+var options = {
+
+	w : 30,
+	h : 20,
+
+	nPlayer : 2,
+
+	initPos : [
+		[ 3 ,3 ],
+		[ 4, 4 ],
+		[ 4, 14 ],
+	],
+
+	whoStart : 0,
+}
+
+window.onload= function(){
+
+	var scope = window
+
+
+	// draw the map
+	var canvas = document.getElementsByTagName( 'canvas' )[0],
+		ctx = canvas.getContext('2d'),
+		grid = 30,
+		w = options.w || 30,
+		h = options.h || 20,
+		colors = [
+			'#31AB12',
+			'#1012AE',
+			'#AB1241',
+			'#F12CED'
+		]
+
+	canvas.setAttribute( 'width' , w*grid )
+	canvas.setAttribute( 'height' , h*grid )
+
+	var drawGrid = function(){
+		for(var x=w;x--;)
+		for(var y=h;y--;){
+			ctx.fillStyle = '#'+(Math.floor( Math.random() * 50 + 190 ) * ( 1 + 256 + 256*256 )).toString( 16 )
+			ctx.beginPath()
+			ctx.rect( x*grid , y*grid , grid , grid )
+			ctx.fill()
+		}
+	}
+	var drawMove = function( oldPos , newPos , i ){
+		ctx.strokeStyle = colors[i]
+		ctx.lineWidth = grid*0.7
+		ctx.lineCap = "round"
+		ctx.beginPath()
+		ctx.moveTo( (oldPos[0]+0.5)*grid , (oldPos[1]+0.5)*grid )
+		ctx.lineTo( (newPos[0]+0.5)*grid+0.5 , (newPos[1]+0.5)*grid )
+		ctx.stroke()
+	}
+	drawGrid();
+
+
+	// hold he players
+	var players;
+	if( options.initPos )
+		players = options.initPos;
+	else{
+		players = new Array( options.nPlayer || 2 )
+		for(var i=players.length;i--;){
+			players.push([Math.floor(Math.random() * w ),Math.floor(Math.random() * h )])
+		}
+	}
+
+	// draw them
+	for(var i=players.length;i--;)
+		drawMove( players[i] , players[i] , i )
+	
+	var dot = document.getElementById('dot')
+	var selectPlayer = function(i){
+		dot.style.display= i==0 ? "none" : "block"
+		dot.style.left = (( players[i][0] + 0.5 ) * grid ) +'px'
+		dot.style.top = (( players[i][1] + 0.5 ) * grid ) +'px'
+	}
+
+	// game loop
+
+	var next=options.whoStart || 0;
+
+	var worker = new Worker('solution.js');
+
+	var anaTurn = function(){
+		var s = players.length+" "+0
+		for(var i=0;i<players.length;i++)
+			s += ':'+players[i][0]+" "+players[i][1]+" "+players[i][0]+" "+players[i][1];
+		worker.postMessage(s); 
+	}
+
+	var valide = new (function( worker ){
+		var keyboard=false,
+			ana=false,
+			choice=null
+
+
+		worker.addEventListener('message', function(e) {
+	  		if( !ana )
+	  			return console.log( "get unexpected bot event "+e.data )
+	  		choice = e.data
+		}, false);
+
+
+		document.addEventListener('keydown',function(e){
+			if( !keyboard )
+				return
+			switch( e.which ){
+				case 38 :
+				case 40 :
+				case 37 :
+				case 36 :
+					keyboard = false;
+				break;
+			}
+			switch( e.which ){
+				case 38 : 
+					choice = "UP"; 
+				break
+				case 40 : 
+					choice = "DOWN"; 
+				break
+				case 37 : 
+					choice = "LEFT"; 
+				break
+				case 39 : 
+					choice = "RIGHT"; 
+				break
+			}
+		})
+
+		this.setSource=function( l ){
+			keyboard=false;
+			ana=false;
+			switch( l ){
+				case 'keyboard' : 
+					keyboard = true 
+				break
+				case 'ana' : 
+					ana = true 
+				break
+			}
+			choice=null;
+		},
+		this.choice=function(){
+			return choice;
+		}
+
+	})( worker )
+
+
+	var turn = function(){
+		valide.setSource( next ? 'keyboard' : 'ana' )
+
+		selectPlayer( next )
+
+		if( next == 0 )
+			anaTurn()
+
+		wait()
+	}
+	var wait=function(){
+		var s=valide.choice()
+		if( !s )
+			return window.setTimeout( wait , 100 )
+		// what do
+		newPos = [ players[ next ][0] , players[ next ][1] ]
+		switch( s ){
+			case "UP": 
+			newPos[1] -- 
+			break;
+			case "DOWN": 
+			newPos[1] ++ 
+			break;
+			case "RIGHT": 
+			newPos[0] ++ 
+			break;
+			case "LEFT": 
+			newPos[0] -- 
+			break;
+		}
+		drawMove( players[ next ] , newPos , next )
+		players[ next ] = newPos;
+		next = (next+1)%players.length
+		turn();
+	}
+
+	turn()
+
+
+	worker.postMessage();
+}
+
+</script>
+
+<canvas></canvas>
+<div id="dot"></div>
+<style>
+	body{
+		margin:0;
+	}
+	#dot{
+		position:absolute;
+		display: block;
+		width:0;
+		height:0;
+	}
+	#dot:before{
+		content:'';
+		position:absolute;
+		display: block;
+		width:0;
+		height:0;
+		border-left: solid 12px transparent;
+		border-right: solid 12px transparent;
+		border-top: solid 25px #12A4DA;
+		bottom: 0;
+		left: -12px;
+	}
+</style>
+</html>
